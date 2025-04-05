@@ -39,7 +39,7 @@ use rgbstd::stl::StandardTypes;
 use rgbstd::validation::Scripts;
 use rgbstd::vm::opcodes::INSTR_SVS;
 use rgbstd::vm::RgbIsa;
-use rgbstd::{rgbasm, Amount, Identity, Precision};
+use rgbstd::{rgbasm, Amount, ChainNet, Identity, Precision};
 use strict_encoding::InvalidRString;
 use strict_types::TypeSystem;
 
@@ -197,6 +197,26 @@ impl NonInflatableAsset {
     ) -> Result<ValidContract, InvalidRString> {
         let mut issuer =
             Rgb20Wrapper::<MemContract>::testnet::<Self>(issuer, ticker, name, details, precision)?;
+        for (beneficiary, amount) in allocations {
+            issuer = issuer
+                .allocate(beneficiary, amount)
+                .expect("invalid contract data");
+        }
+        Ok(issuer.issue_contract().expect("invalid contract data"))
+    }
+
+    pub fn issue(
+        issuer: &str,
+        ticker: &str,
+        name: &str,
+        details: Option<&str>,
+        precision: Precision,
+        allocations: impl IntoIterator<Item = (Outpoint, impl Into<Amount>)>,
+        chain_net: ChainNet,
+    ) -> Result<ValidContract, InvalidRString> {
+        let mut issuer = Rgb20Wrapper::<MemContract>::issue::<Self>(
+            issuer, ticker, name, details, precision, chain_net,
+        )?;
         for (beneficiary, amount) in allocations {
             issuer = issuer
                 .allocate(beneficiary, amount)
